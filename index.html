@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟太阳系</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 初始化场景、相机和渲染器
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // 启用阴影
+        renderer.setClearColor(0x000000); // 设置背景颜色为黑色
+        document.body.appendChild(renderer.domElement);
+
+        // 创建太阳
+        const sunGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const sunMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffff00,
+            emissive: 0xffff00,
+            roughness: 0.5,
+            metalness: 0.5
+        });
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        sun.castShadow = true; // 太阳可以投射阴影
+        scene.add(sun);
+
+        // 添加光源
+        const light = new THREE.PointLight(0xffffff, 2, 100); // 增加光源强度
+        light.position.set(5, 5, 5); // 设置光源位置
+        light.castShadow = true; // 光源可以投射阴影
+        scene.add(light);
+
+        // 添加环境光以增强立体感
+        const ambientLight = new THREE.AmbientLight(0x404040, 1); // 增加环境光强度
+        scene.add(ambientLight);
+
+        // 设置相机位置
+        camera.position.z = 6; // 确保相机在太阳前面
+
+        // 创建行星
+        const planets = [];
+        const planetData = [
+            { size: 0.2, distance: 2, texture: 'textures/mercury.jpg', rotationSpeed: 0.02 }, // 水星
+            { size: 0.3, distance: 3, texture: 'textures/venus.jpg', rotationSpeed: 0.01 }, // 金星
+            { size: 0.4, distance: 4, texture: 'textures/earth.jpg', rotationSpeed: 0.005 }, // 地球
+            { size: 0.3, distance: 5, texture: 'textures/mars.jpg', rotationSpeed: 0.03 },  // 火星
+            { size: 0.6, distance: 6, texture: 'textures/saturn.jpg', rotationSpeed: 0.02 } // 土星
+        ];
+
+        const textureLoader = new THREE.TextureLoader();
+
+        planetData.forEach(data => {
+            const geometry = new THREE.SphereGeometry(data.size, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ map: textureLoader.load(data.texture) });
+            const planet = new THREE.Mesh(geometry, material);
+            planet.userData = { distance: data.distance, rotationSpeed: data.rotationSpeed };
+            planets.push(planet);
+            scene.add(planet);
+
+            // 为土星添加环
+            if (data.texture === 'textures/saturn.jpg') {
+                const ringGeometry = new THREE.RingGeometry(0.8, 1, 32);
+                const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.rotation.x = Math.PI / 2; // 使环水平
+                planet.add(ring); // 将环添加到土星
+            }
+        });
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            sun.rotation.y += 0.01; // 太阳自转
+
+            // 更新行星的位置
+            planets.forEach(planet => {
+                const distance = planet.userData.distance;
+                const rotationSpeed = planet.userData.rotationSpeed;
+
+                // 行星围绕太阳旋转
+                planet.position.x = Math.cos(Date.now() * 0.001 * rotationSpeed) * distance;
+                planet.position.z = Math.sin(Date.now() * 0.001 * rotationSpeed) * distance;
+
+                // 行星自转
+                planet.rotation.y += 0.01; // 自转速度
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
